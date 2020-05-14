@@ -2,6 +2,8 @@ package com.gcp.servicesfile;
 
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+import org.springframework.web.servlet.view.RedirectView;
 
 import com.opencsv.CSVWriter;
 
@@ -10,26 +12,38 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.util.List;
 
+import javax.validation.Valid;
+
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.ui.Model;
+import org.springframework.validation.BindingResult;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
 
 @RestController
 public class EmployeesController {
-	
+	String message;
+
 	@Autowired
 	RestTemplate restTemplate;
+
+	@Autowired
+	private ServicesfileApplication.PubsubOutboundGateway messagingGateway;
 
 	@RequestMapping("/")
 	public String index() {
 		return "Test-Johan Rujano";
 	}
+
 	
-	@RequestMapping("/employees")
-	private static void getEmployees() throws IOException
+	@RequestMapping(value = "/employees", method = RequestMethod.GET)
+	private RedirectView getEmployees(RedirectAttributes attributes) throws IOException
 	{
-	    final String uri = "http://dummy.restapiexample.com/api/v1/employees";
-	    RestTemplate restTemplate = new RestTemplate();
-	     
+		final String uri = "http://dummy.restapiexample.com/api/v1/employees";
+		RestTemplate restTemplate = new RestTemplate();
+
 		/*
 		 * HttpHeaders headers = new HttpHeaders();
 		 * headers.setAccept(Arrays.asList(MediaType.APPLICATION_JSON));
@@ -41,22 +55,34 @@ public class EmployeesController {
 		 * System.out.println(result);
 		 */
 		Employees employee = restTemplate.getForObject(uri,  Employees.class);
-		
+
 		File file = File.createTempFile("fala-csv-output-", ".csv");
 		FileWriter output = new FileWriter(file);
 		CSVWriter write = new CSVWriter(output);
-	    	
+
 		String[] header = { "ID", "Name", "Salary", "Age", "Image" };
-        write.writeNext(header);
+		write.writeNext(header);
 		List<Data> employees = employee.getData();
 		for (int i = 0; i < employees.size(); i++) {
-					
+
 			write.writeNext(new String[]{employees.get(i).getId(), employees.get(i).getEmployee_name(), employees.get(i).getEmployee_salary(), employees.get(i).getEmployee_age(),employees.get(i).getProfile_image()});
-		    
+
 		}
 		write.close();
 		
+		attributes.addAttribute("message", "Archivo generados");
+        return new RedirectView("postMessage");
+		
+
 	}
+
 	
+	@RequestMapping("/postMessage")
+    public RedirectView publishMessage(@RequestParam("message") String message) {
+        messagingGateway.sendToPubsub(message);
+        return new RedirectView("/");
+    }
+
+
 
 }
