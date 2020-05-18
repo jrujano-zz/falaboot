@@ -12,12 +12,12 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.util.List;
 
-import javax.validation.Valid;
+
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.ui.Model;
-import org.springframework.validation.BindingResult;
-import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -31,6 +31,8 @@ public class EmployeesController {
 
 	@Autowired
 	private ServicesfileApplication.PubsubOutboundGateway messagingGateway;
+	
+	private static final Log LOGGER = LogFactory.getLog(EmployeesController.class);
 
 	@RequestMapping("/")
 	public String index() {
@@ -54,6 +56,7 @@ public class EmployeesController {
 		 * 
 		 * System.out.println(result);
 		 */
+		LOGGER.info("Obteniendo employees");
 		Employees employee = restTemplate.getForObject(uri,  Employees.class);
 
 		File file = File.createTempFile("fala-csv-output-", ".csv");
@@ -68,6 +71,7 @@ public class EmployeesController {
 			write.writeNext(new String[]{employees.get(i).getId(), employees.get(i).getEmployee_name(), employees.get(i).getEmployee_salary(), employees.get(i).getEmployee_age(),employees.get(i).getProfile_image()});
 
 		}
+		LOGGER.info("Generando archivos");
 		write.close();
 		
 		attributes.addAttribute("message", "Archivo generados");
