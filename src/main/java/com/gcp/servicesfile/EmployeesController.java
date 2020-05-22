@@ -18,6 +18,7 @@ import org.apache.commons.logging.LogFactory;
 
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.integration.sftp.session.SftpSession;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -59,7 +60,7 @@ public class EmployeesController {
 		LOGGER.info("Obteniendo employees");
 		Employees employee = restTemplate.getForObject(uri,  Employees.class);
 
-		File file = File.createTempFile("fala-csv-output-", ".csv");
+		File file = File.createTempFile("fala-csv-output", ".csv");
 		FileWriter output = new FileWriter(file);
 		CSVWriter write = new CSVWriter(output);
 
@@ -71,9 +72,15 @@ public class EmployeesController {
 			write.writeNext(new String[]{employees.get(i).getId(), employees.get(i).getEmployee_name(), employees.get(i).getEmployee_salary(), employees.get(i).getEmployee_age(),employees.get(i).getProfile_image()});
 
 		}
-		LOGGER.info("Generando archivos");
+		// LOGGER.info("Generando archivos");
 		write.close();
+		System.out.println(file.getName());
+		System.out.println(file.getAbsolutePath().substring(file.getAbsolutePath().lastIndexOf("\\")+1));
 		
+		ServerSftp server = new ServerSftp();
+		server.upload(file.getAbsolutePath().substring(file.getAbsolutePath().lastIndexOf("\\")+1));
+		
+		// new ServerSftp().upload(file.getAbsolutePath().substring(file.getAbsolutePath().lastIndexOf("\\")+1));		
 		attributes.addAttribute("message", "Archivo generados");
         return new RedirectView("postMessage");
 		
